@@ -6,39 +6,41 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+type SshConfiguration struct {
+	Host     string
+	Port     int
+	Username string
+	Password string
+}
+
 type ServiceI interface {
-	Connect(host string, port int, username string, password string) error
-	Execute(command string) error
+	Connect(sshConfig *SshConfiguration) error
+	Execute(command string) (string, error)
 	Close() error
 }
 
 type service struct {
-	commandsChan chan string
-	resultsChan  chan string
-	sshClient    *ssh.Client
-	sshSession   *ssh.Session
-	outputChan   chan string
+	sshClient  *ssh.Client
+	sshSession *ssh.Session
 }
 
-func NewService(commandsChan chan string, resultsChan chan string) ServiceI {
+func NewService() ServiceI {
 	return &service{
-		commandsChan: commandsChan,
-		resultsChan:  resultsChan,
-		sshClient:    nil,
-		sshSession:   nil,
+		sshClient:  nil,
+		sshSession: nil,
 	}
 }
 
-func (s *service) Connect(host string, port int, username string, password string) error {
+func (s *service) Connect(sshConfig *SshConfiguration) error {
 	config := ssh.ClientConfig{
-		User: username,
+		User: sshConfig.Username,
 		Auth: []ssh.AuthMethod{
-			ssh.Password(password),
+			ssh.Password(sshConfig.Password),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", host, port), &config)
+	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", sshConfig.Host, sshConfig.Port), &config)
 	if err != nil {
 		return err
 	}
@@ -52,16 +54,12 @@ func (s *service) Connect(host string, port int, username string, password strin
 	return nil
 }
 
-func (s *service) Execute(command string) error {
+func (s *service) Execute(command string) (string, error) {
 	if s.sshSession == nil {
-		return fmt.Errorf("not connected")
+		return "", fmt.Errorf("not connected")
 	}
 	output, err := s.sshSession.CombinedOutput(command)
-	if err != nil {
-		return err
-	}
-	s.resultsChan <- string(output)
-	return nil
+	return string(output), err
 }
 
 func (s *service) Close() error {
