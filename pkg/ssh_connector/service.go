@@ -17,6 +17,7 @@ type ServiceI interface {
 	Connect(sshConfig *SshConfiguration) error
 	Execute(command string) (string, error)
 	Close() error
+	GetSshSession() *ssh.Session
 }
 
 type service struct {
@@ -29,6 +30,10 @@ func NewService() ServiceI {
 		sshClient:  nil,
 		sshSession: nil,
 	}
+}
+
+func (s *service) GetSshSession() *ssh.Session {
+	return s.sshSession
 }
 
 func (s *service) Connect(sshConfig *SshConfiguration) error {
