@@ -1,6 +1,7 @@
-package sshoperator
+package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -11,29 +12,18 @@ import (
 	"golang.org/x/term"
 )
 
-type SSHOperatorI interface {
-	Connect()
+type App struct {
+	ctx context.Context
 }
 
-type SSHOperator struct {
-	username string
-	password string
-	host     string
-	port     string
-	commands []string
+func NewApp() *App {
+	return &App{}
 }
 
-func NewSSHOperator(username, password, host, port string, commands []string) SSHOperatorI {
-	return &SSHOperator{
-		username: username,
-		password: password,
-		host:     host,
-		port:     port,
-		commands: commands,
-	}
+func (a *App) startup(ctx context.Context) {
+	a.ctx = ctx
 }
-
-func (s *SSHOperator) checkSudoPassword(session *ssh.Session) (bool, error) {
+func (a *App) checkSudoPassword(session *ssh.Session) (bool, error) {
 	cmd := "sudo -n true 2>&1"
 
 	defer session.Close()
@@ -54,12 +44,12 @@ func (s *SSHOperator) checkSudoPassword(session *ssh.Session) (bool, error) {
 	return false, nil
 }
 
-func (s *SSHOperator) Connect() {
-	address := fmt.Sprintf("%s:%s", s.host, s.port)
+func (a *App) ConnectAndExecuteCommands(username string, password string, host string, port string, commands []string) {
+	address := fmt.Sprintf("%s:%s", host, port)
 	config := &ssh.ClientConfig{
-		User: s.username,
+		User: username,
 		Auth: []ssh.AuthMethod{
-			ssh.Password(string(s.password)),
+			ssh.Password(string(password)),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         10 * time.Second,
@@ -78,7 +68,7 @@ func (s *SSHOperator) Connect() {
 		log.Fatalf("Ошибка создания сессии: %v", err)
 	}
 	var needRootPass = false
-	needRootPass, err = s.checkSudoPassword(testsession)
+	needRootPass, err = a.checkSudoPassword(testsession)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -127,11 +117,11 @@ func (s *SSHOperator) Connect() {
 	stdin.Write([]byte("sudo su root\n"))
 	time.Sleep(1 * time.Second)
 	if needRootPass {
-		stdin.Write([]byte(string(s.password) + "\n"))
+		stdin.Write([]byte(string(password) + "\n"))
 	}
 	time.Sleep(2 * time.Second)
 
-	for _, command := range s.commands {
+	for _, command := range commands {
 		stdin.Write([]byte(command + "\n"))
 		time.Sleep(2 * time.Second)
 	}
