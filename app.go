@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -10,6 +11,10 @@ import (
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/term"
+)
+
+var (
+	outputBuf = io.Writer(os.Stdout)
 )
 
 type App struct {
@@ -103,8 +108,8 @@ func (a *App) ConnectAndExecuteCommands(username string, password string, host s
 		log.Fatalf("Ошибка запроса pty: %v", err)
 	}
 
-	session.Stdout = os.Stdout
-	session.Stderr = os.Stderr
+	session.Stdout = outputBuf
+	session.Stderr = outputBuf
 	stdin, _ := session.StdinPipe()
 
 	err = session.Shell()
@@ -127,4 +132,13 @@ func (a *App) ConnectAndExecuteCommands(username string, password string, host s
 	}
 
 	session.Close()
+}
+
+func (a *App) UpdateLightDefender(sshUsername string, sshPassword string, host string, port string) {
+	commands := []string{
+		`[[ -f /etc/systemd/system/ldclient.service ]] && cd "$(grep WorkingDirectory /etc/systemd/system/ldclient.service | cut -d= -f2 | xargs)" 2>/dev/null && pwd || echo "Файл не найден или ошибка"`,
+		`ls -la`,
+	}
+
+	a.ConnectAndExecuteCommands(sshUsername, sshPassword, host, port, commands)
 }

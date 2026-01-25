@@ -12,6 +12,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { useLanguage } from "@/contexts/language-context"
 import { AlertCircle, Eye, EyeOff, Upload, ChevronDown, ChevronUp, PlayCircle } from "lucide-react"
 import { LanguageSelector } from "@/components/language-selector"
+import { UpdateLightDefender } from "@/wailsjs/go/main/App"
 
 type ExecutionMode = "install" | "reconfigure" | "update"
 type ConfigMethod = "file" | "credentials"
@@ -54,32 +55,11 @@ export default function LauncherPage() {
     setStatus("running")
     setShowDetails(true)
     setExecutionLog([])
-
-    // Simulate command execution
-    const logs = [
-      `$ Connecting to ${sshLogin}@${sshIp}${customPort ? `:${sshPort}` : ""}...`,
-      "$ Connection established",
-      `$ Executing ${mode} procedure...`,
-      "$ Checking system requirements...",
-      "$ All requirements met",
-      "$ Downloading packages...",
-      "$ Installing dependencies...",
-      "$ Configuring services...",
-      "$ Starting Light Defender agent...",
-      "$ Agent started successfully",
-      `$ ${mode === "install" ? "Installation" : mode === "reconfigure" ? "Reconfiguration" : "Update"} completed successfully`,
-    ]
-
-    let index = 0
-    const interval = setInterval(() => {
-      if (index < logs.length) {
-        setExecutionLog((prev) => [...prev, logs[index]])
-        index++
-      } else {
-        clearInterval(interval)
+    if (mode == "update") {
+      UpdateLightDefender(sshLogin, sshPassword, sshIp, sshPort).then(() => {
         setStatus("success")
-      }
-    }, 500)
+      })
+    }
   }
 
   const getStatusColor = () => {
