@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/term"
 )
@@ -49,7 +49,7 @@ func (a *App) checkSudoPassword(session *ssh.Session) (bool, error) {
 	return false, nil
 }
 
-func (a *App) ConnectAndExecuteCommands(username string, password string, host string, port string, commands []string) {
+func (a *App) ConnectAndExecuteCommands(username string, password string, host string, port string, commands []string) error {
 	address := fmt.Sprintf("%s:%s", host, port)
 	config := &ssh.ClientConfig{
 		User: username,
@@ -60,32 +60,32 @@ func (a *App) ConnectAndExecuteCommands(username string, password string, host s
 		Timeout:         10 * time.Second,
 	}
 
-	fmt.Printf("Подключаемся к %s...\n", address)
+	runtime.EventsEmit(a.ctx, "log", fmt.Sprintf("Подключаемся к %s...\n", address))
 	client, err := ssh.Dial("tcp", address, config)
 	if err != nil {
-		log.Fatalf("Ошибка подключения: %v", err)
+		return fmt.Errorf("Ошибка подключения: %v", err)
 	}
 	defer client.Close()
-	fmt.Println("Подключение успешно!")
+	runtime.EventsEmit(a.ctx, "log", "Подключение установлено!") //fmt.Println("Подключение успешно!")
 
 	testsession, err := client.NewSession()
 	if err != nil {
-		log.Fatalf("Ошибка создания сессии: %v", err)
+		return fmt.Errorf("Ошибка создания сессии: %v", err)
 	}
 	var needRootPass = false
 	needRootPass, err = a.checkSudoPassword(testsession)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("Ошибка проверки sudo: %v", err)
 	}
 	session, err := client.NewSession()
 	if err != nil {
-		log.Fatalf("Ошибка создания сессии: %v", err)
+		return fmt.Errorf("Ошибка создания сессии: %v", err)
 	}
 
 	fd := int(os.Stdin.Fd())
 	oldState, err := term.MakeRaw(fd)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("Ошибка получения состояния терминала: %v", err)
 	}
 	defer term.Restore(fd, oldState)
 
@@ -105,7 +105,7 @@ func (a *App) ConnectAndExecuteCommands(username string, password string, host s
 
 	err = session.RequestPty("xterm", termHeight, termWidth, modes)
 	if err != nil {
-		log.Fatalf("Ошибка запроса pty: %v", err)
+		return fmt.Errorf("Ошибка запроса pty: %v", err)
 	}
 
 	session.Stdout = outputBuf
@@ -114,10 +114,10 @@ func (a *App) ConnectAndExecuteCommands(username string, password string, host s
 
 	err = session.Shell()
 	if err != nil {
-		log.Fatalf("Ошибка запуска shell: %v", err)
+		return fmt.Errorf("Ошибка запуска shell: %v", err)
 	}
 
-	fmt.Println("\nВыполняем sudo su root...")
+	runtime.EventsEmit(a.ctx, "log", "Выполняем sudo su root...") //fmt.Println("\nВыполняем sudo su root...")
 
 	stdin.Write([]byte("sudo su root\n"))
 	time.Sleep(1 * time.Second)
@@ -127,18 +127,28 @@ func (a *App) ConnectAndExecuteCommands(username string, password string, host s
 	time.Sleep(2 * time.Second)
 
 	for _, command := range commands {
+		runtime.EventsEmit(a.ctx, "log", fmt.Sprintf("Выполняем команду: %s\n", command))
 		stdin.Write([]byte(command + "\n"))
 		time.Sleep(2 * time.Second)
 	}
 
-	session.Close()
+	err = session.Close()
+	if err != nil {
+		return nil
+	}
+	return nil
 }
 
-func (a *App) UpdateLightDefender(sshUsername string, sshPassword string, host string, port string) {
+func (a *App) UpdateLightDefender(sshUsername string, sshPassword string, host string, port string) []string {
 	commands := []string{
-		`[[ -f /etc/systemd/system/ldclient.service ]] && cd "$(grep WorkingDirectory /etc/systemd/system/ldclient.service | cut -d= -f2 | xargs)" 2>/dev/null && pwd || echo "Файл не найден или ошибка"`,
-		`ls -la`,
+		`[[ -f /etc/systemd/system/ldclient.service ]] && cd "$(grep WorkingDirectory /etc/systemd/system/ldclient.service | cut -d= -f2 | xargs)" 2>/dev/null && pwd && sudo systemctl stop ldclient && sudo mv ldclient.bin ldclient.bin.save && sudo ./ldclient.bin.save -uni && sudo rm -rf ldclient.bin.save && sudo systemctl start ldclient || echo "Файл не найден или ошибка"`,
 	}
 
-	a.ConnectAndExecuteCommands(sshUsername, sshPassword, host, port, commands)
+	err := a.ConnectAndExecuteCommands(sshUsername, sshPassword, host, port, commands)
+
+	if err != nil {
+		return []string{"false", err.Error()}
+	}
+
+	return []string{"true", ""}
 }

@@ -3,4 +3,4 @@
 
 export function ConnectAndExecuteCommands(arg1:string,arg2:string,arg3:string,arg4:string,arg5:Array<string>):Promise<void>;
 
-export function UpdateLightDefender(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
+export function UpdateLightDefender(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Array<string>>;

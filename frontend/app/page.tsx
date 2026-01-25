@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,7 @@ import { useLanguage } from "@/contexts/language-context"
 import { AlertCircle, Eye, EyeOff, Upload, ChevronDown, ChevronUp, PlayCircle } from "lucide-react"
 import { LanguageSelector } from "@/components/language-selector"
 import { UpdateLightDefender } from "@/wailsjs/go/main/App"
+import { EventsOn } from "@/wailsjs/runtime/runtime"
 
 type ExecutionMode = "install" | "reconfigure" | "update"
 type ConfigMethod = "file" | "credentials"
@@ -51,14 +52,24 @@ export default function LauncherPage() {
     }
   }
 
-  const handleStart = () => {
+  useEffect(() => {
+    EventsOn("log", (data: string) => {
+      setExecutionLog((log) => [...log, data])
+    })
+  },[])
+
+  const handleStart = async () => {
     setStatus("running")
     setShowDetails(true)
     setExecutionLog([])
     if (mode == "update") {
-      UpdateLightDefender(sshLogin, sshPassword, sshIp, sshPort).then(() => {
+      let data = await UpdateLightDefender(sshLogin, sshPassword, sshIp, sshPort)
+      if (data[0] == "true") {
         setStatus("success")
-      })
+      } else {
+        setStatus("failure")
+        setExecutionLog((log) => [...log, data[1]])
+      }
     }
   }
 
