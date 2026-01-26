@@ -1,0 +1,25 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "light-defender-launcher",
+  "outputfilename": "light-defender-launcher",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "fridalif",
+    "email": "fridalif2@gmail.com"
+  },
+  "info": {
+    "icon": "./logo.png"
+  },
+  "darwin": {
+    "icon": "build/darwin/logo.icns"
+  },
+  "windows": {
+    "icon": "build/windows/logo.ico"
+  },
+  "linux": {
+    "icon": "build/linux/logo.png"
+  }
+}
