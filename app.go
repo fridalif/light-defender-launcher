@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -139,8 +143,68 @@ func (a *App) ConnectAndExecuteCommands(username string, password string, host s
 	return nil
 }
 
-func (a *App) LoadConfig(sshUsername string, sshPassword string, host string, port string, dashboardLogin string, dashboardPassword string, file []byte) []string {
+type UserInput struct {
+	Username        string `json:"username"`
+	Password        string `json:"password"`
+	ConfigurationID string `json:"configuration_id"`
+}
 
+func LoadFileFromDashboard(dashboardLogin string, dashboardPassword string, configId string) ([]byte, error) {
+	url := "https://bot.light-defender.ru/load_config"
+
+	userInput := UserInput{
+		Username:        dashboardLogin,
+		Password:        dashboardPassword,
+		ConfigurationID: configId,
+	}
+	inputBytes, err := json.Marshal(userInput)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(inputBytes))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Учётные данные не верны.")
+	}
+
+	return body, nil
+}
+
+func (a *App) LoadConfig(sshUsername string, sshPassword string, host string, port string, dashboardLogin string, dashboardPassword string, configId string, file []byte) []string {
+	if ((dashboardLogin == "") || (dashboardPassword == "") || (configId == "")) && len(file) == 0 {
+		return []string{"false", "Поля не заполнены"}
+	}
+	var err error = nil
+	if len(file) == 0 {
+		file, err = LoadFileFromDashboard(
+			dashboardLogin,
+			dashboardPassword,
+			configId,
+		)
+		if err != nil {
+			return []string{"false", err.Error()}
+		}
+	}
+	commands := []string{
+		`[[ -f /etc/systemd/system/ldclient.service ]] && cd "$(grep WorkingDirectory /etc/systemd/system/ldclient.service | cut -d= -f2 | xargs)" 2>/dev/null && pwd && sudo systemctl stop ldclient && ` +
+			fmt.Sprintf(`echo '%s' | base64 -d > ./etc/config.bin`, base64.StdEncoding.EncodeToString(file)) +
+			` && sudo systemctl start ldclient || echo "Файл не найден или ошибка"`,
+	}
+
+	err = a.ConnectAndExecuteCommands(sshUsername, sshPassword, host, port, commands)
+
+	if err != nil {
+		return []string{"false", err.Error()}
+	}
+
+	return []string{"true", ""}
 }
 
 func (a *App) InstallLightDefender(sshUsername string, sshPassword string, host string, port string) []string {
