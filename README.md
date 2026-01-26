@@ -8,3 +8,5 @@
 - Обновляться до новых версий за пару кликов.
 
 
+- [Текстовая инструкция по использованию лаунчера](./INSTRUCTIONS/LAUNCHER/LAUNCHER.md);
+- [Текстовая инструкция по установке Light Defender вручную](./INSTRUCTIONS/MANUAL/MANUAL.md).
