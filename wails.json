@@ -9,5 +9,17 @@
   "author": {
     "name": "fridalif",
     "email": "fridalif2@gmail.com"
+  },
+  "info": {
+    "icon": "./logo.png"
+  },
+  "darwin": {
+    "icon": "build/darwin/logo.icns"
+  },
+  "windows": {
+    "icon": "build/windows/logo.ico"
+  },
+  "linux": {
+    "icon": "build/linux/logo.png"
   }
 }
