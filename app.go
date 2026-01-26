@@ -177,13 +177,12 @@ func LoadFileFromDashboard(dashboardLogin string, dashboardPassword string, conf
 	return body, nil
 }
 
-func (a *App) LoadConfig(sshUsername string, sshPassword string, host string, port string, dashboardLogin string, dashboardPassword string, configId string, file []byte) []string {
-	if ((dashboardLogin == "") || (dashboardPassword == "") || (configId == "")) && len(file) == 0 {
+func (a *App) LoadConfig(sshUsername string, sshPassword string, host string, port string, dashboardLogin string, dashboardPassword string, configId string, fileb64 string) []string {
+	if ((dashboardLogin == "") || (dashboardPassword == "") || (configId == "")) && len(fileb64) == 0 {
 		return []string{"false", "Поля не заполнены"}
 	}
-	var err error = nil
-	if len(file) == 0 {
-		file, err = LoadFileFromDashboard(
+	if len(fileb64) == 0 {
+		file, err := LoadFileFromDashboard(
 			dashboardLogin,
 			dashboardPassword,
 			configId,
@@ -191,14 +190,15 @@ func (a *App) LoadConfig(sshUsername string, sshPassword string, host string, po
 		if err != nil {
 			return []string{"false", err.Error()}
 		}
+		fileb64 = base64.StdEncoding.EncodeToString(file)
 	}
 	commands := []string{
 		`[[ -f /etc/systemd/system/ldclient.service ]] && cd "$(grep WorkingDirectory /etc/systemd/system/ldclient.service | cut -d= -f2 | xargs)" 2>/dev/null && pwd && sudo systemctl stop ldclient && ` +
-			fmt.Sprintf(`echo '%s' | base64 -d > ./etc/config.bin`, base64.StdEncoding.EncodeToString(file)) +
+			fmt.Sprintf(`echo '%s' | base64 -d > ./etc/config.bin`, fileb64) +
 			` && sudo systemctl start ldclient || echo "Файл не найден или ошибка"`,
 	}
 
-	err = a.ConnectAndExecuteCommands(sshUsername, sshPassword, host, port, commands)
+	err := a.ConnectAndExecuteCommands(sshUsername, sshPassword, host, port, commands)
 
 	if err != nil {
 		return []string{"false", err.Error()}

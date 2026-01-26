@@ -3,4 +3,8 @@
 
 export function ConnectAndExecuteCommands(arg1:string,arg2:string,arg3:string,arg4:string,arg5:Array<string>):Promise<void>;
 
+export function InstallLightDefender(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Array<string>>;
+
+export function LoadConfig(arg1:string,arg2:string,arg3:string,arg4:string,arg5:string,arg6:string,arg7:string,arg8:string):Promise<Array<string>>;
+
 export function UpdateLightDefender(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Array<string>>;

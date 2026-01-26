@@ -6,6 +6,14 @@ export function ConnectAndExecuteCommands(arg1, arg2, arg3, arg4, arg5) {
   return window['go']['main']['App']['ConnectAndExecuteCommands'](arg1, arg2, arg3, arg4, arg5);
 }
 
+export function InstallLightDefender(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['InstallLightDefender'](arg1, arg2, arg3, arg4);
+}
+
+export function LoadConfig(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8) {
+  return window['go']['main']['App']['LoadConfig'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+}
+
 export function UpdateLightDefender(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['UpdateLightDefender'](arg1, arg2, arg3, arg4);
 }

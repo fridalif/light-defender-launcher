@@ -12,7 +12,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { useLanguage } from "@/contexts/language-context"
 import { AlertCircle, Eye, EyeOff, Upload, ChevronDown, ChevronUp, PlayCircle } from "lucide-react"
 import { LanguageSelector } from "@/components/language-selector"
-import { UpdateLightDefender } from "@/wailsjs/go/main/App"
+import { InstallLightDefender, LoadConfig, UpdateLightDefender } from "@/wailsjs/go/main/App"
 import { EventsOn } from "@/wailsjs/runtime/runtime"
 
 type ExecutionMode = "install" | "reconfigure" | "update"
@@ -69,6 +69,30 @@ export default function LauncherPage() {
       } else {
         setStatus("failure")
         setExecutionLog((log) => [...log, data[1]])
+      }
+    }
+    if (mode == "reconfigure") {
+      let data = await LoadConfig(sshLogin, sshPassword, sshIp, sshPort, dashboardLogin, dashboardPassword, configId, configFile != null ? (await configFile.bytes()).toBase64() : "")
+      if (data[0] == "true") {
+        setStatus("success")
+      } else {
+        setStatus("failure")
+        setExecutionLog((log) => [...log, data[1]])
+      }
+    }
+    if (mode == "install") {
+      let data = await InstallLightDefender(sshLogin, sshPassword, sshIp, sshPort)
+      if (data[0] == "false") {
+        setStatus("failure")
+        setExecutionLog((log) => [...log, data[1]])
+        return
+      }
+      let data2 = await LoadConfig(sshLogin, sshPassword, sshIp, sshPort, dashboardLogin, dashboardPassword, configId, configFile != null ? (await configFile.bytes()).toBase64() : "")
+      if (data2[0] == "true") {
+        setStatus("success")
+      } else {
+        setStatus("failure")
+        setExecutionLog((log) => [...log, data2[1]])
       }
     }
   }
