@@ -58,6 +58,12 @@ export default function LauncherPage() {
     })
   },[])
 
+  useEffect(()=>{
+    if (configMethod == "credentials") {
+      setConfigFile(null)
+    }
+  },[configMethod])
+
   const handleStart = async () => {
     setStatus("running")
     setShowDetails(true)

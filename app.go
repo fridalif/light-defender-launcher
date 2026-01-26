@@ -193,9 +193,9 @@ func (a *App) LoadConfig(sshUsername string, sshPassword string, host string, po
 		fileb64 = base64.StdEncoding.EncodeToString(file)
 	}
 	commands := []string{
-		`[[ -f /etc/systemd/system/ldclient.service ]] && cd "$(grep WorkingDirectory /etc/systemd/system/ldclient.service | cut -d= -f2 | xargs)" 2>/dev/null && pwd && sudo systemctl stop ldclient && ` +
+		`[[ -f /etc/systemd/system/ldclient.service ]] && cd "$(grep WorkingDirectory /etc/systemd/system/ldclient.service | cut -d= -f2 | xargs)" 2>/dev/null && pwd && ` +
 			fmt.Sprintf(`echo '%s' | base64 -d > ./etc/config.bin`, fileb64) +
-			` && sudo systemctl start ldclient || echo "Файл не найден или ошибка"`,
+			` && sudo systemctl restart ldclient || echo "Файл не найден или ошибка"`,
 	}
 
 	err := a.ConnectAndExecuteCommands(sshUsername, sshPassword, host, port, commands)
