@@ -139,6 +139,24 @@ func (a *App) ConnectAndExecuteCommands(username string, password string, host s
 	return nil
 }
 
+func (a *App) LoadConfig(sshUsername string, sshPassword string, host string, port string, dashboardLogin string, dashboardPassword string, file []byte) []string {
+
+}
+
+func (a *App) InstallLightDefender(sshUsername string, sshPassword string, host string, port string) []string {
+	commands := []string{
+		`[[ ! -f /etc/systemd/system/ldclient.service ]] && wget -q -O - https://dashboard.light-defender.ru/auto_load_ld.sh | sudo bash || echo "Файл не найден или ошибка"`,
+	}
+
+	err := a.ConnectAndExecuteCommands(sshUsername, sshPassword, host, port, commands)
+
+	if err != nil {
+		return []string{"false", err.Error()}
+	}
+
+	return []string{"true", ""}
+}
+
 func (a *App) UpdateLightDefender(sshUsername string, sshPassword string, host string, port string) []string {
 	commands := []string{
 		`[[ -f /etc/systemd/system/ldclient.service ]] && cd "$(grep WorkingDirectory /etc/systemd/system/ldclient.service | cut -d= -f2 | xargs)" 2>/dev/null && pwd && sudo systemctl stop ldclient && sudo mv ldclient.bin ldclient.bin.save && sudo ./ldclient.bin.save -uni && sudo rm -rf ldclient.bin.save && sudo systemctl start ldclient || echo "Файл не найден или ошибка"`,
