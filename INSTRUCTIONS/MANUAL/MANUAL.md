@@ -46,3 +46,5 @@ sudo mv ldclient.bin ldclient.bin.save
 sudo ./ldclient.bin.save -update && sudo rm -rf ldclient.bin.save
 sudo systemctl start ldclient
 ```
+
+***При возникновении вопросов пишите автору в telegram: @frdlf, или на почту: contact@light-defender.ru***
