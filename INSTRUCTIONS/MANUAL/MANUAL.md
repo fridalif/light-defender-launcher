@@ -43,7 +43,7 @@ sudo systemctl start ldclient
 ```bash
 sudo systemctl stop ldclient
 sudo mv ldclient.bin ldclient.bin.save
-sudo ./ldclient.bin.save -update && sudo rm -rf ldclient.bin.save
+sudo ./ldclient.bin.save -u && sudo rm -rf ldclient.bin.save
 sudo systemctl start ldclient
 ```
 
