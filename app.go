@@ -14,7 +14,6 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/term"
 )
 
 var (
@@ -86,14 +85,14 @@ func (a *App) ConnectAndExecuteCommands(username string, password string, host s
 		return fmt.Errorf("Ошибка создания сессии: %v", err)
 	}
 
-	fd := int(os.Stdin.Fd())
-	oldState, err := term.MakeRaw(fd)
-	if err != nil {
-		return fmt.Errorf("Ошибка получения состояния терминала: %v", err)
-	}
-	defer term.Restore(fd, oldState)
+	//fd := int(os.Stdin.Fd())
+	//oldState, err := term.MakeRaw(fd)
+	//if err != nil {
+	//	return fmt.Errorf("Ошибка получения состояния терминала: %v", err)
+	//}
+	//defer term.Restore(fd, oldState)
 
-	termWidth, termHeight, _ := term.GetSize(fd)
+	termWidth, termHeight := 0, 0
 	if termWidth == 0 {
 		termWidth = 80
 	}
