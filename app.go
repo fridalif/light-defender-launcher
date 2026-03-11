@@ -143,18 +143,23 @@ func (a *App) ConnectAndExecuteCommands(username string, password string, host s
 }
 
 type UserInput struct {
-	Username        string `json:"username"`
+	Email           string `json:"email"`
 	Password        string `json:"password"`
 	ConfigurationID string `json:"configuration_id"`
 }
 
+type AuthResponse struct {
+	Status int            `json:"status"`
+	Body   map[string]any `json:"body"`
+	Error  string         `json:"error"`
+}
+
 func LoadFileFromDashboard(dashboardLogin string, dashboardPassword string, configId string) ([]byte, error) {
-	url := "https://bot.light-defender.ru/load_config"
+	url := "https://dashboard.light-defender.ru/api/v1/auth/password/sign-in"
 
 	userInput := UserInput{
-		Username:        dashboardLogin,
-		Password:        dashboardPassword,
-		ConfigurationID: configId,
+		Email:    dashboardLogin,
+		Password: dashboardPassword,
 	}
 	inputBytes, err := json.Marshal(userInput)
 	if err != nil {
@@ -172,7 +177,35 @@ func LoadFileFromDashboard(dashboardLogin string, dashboardPassword string, conf
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("Учётные данные не верны.")
 	}
-
+	var responseUnmarshal AuthResponse
+	err = json.Unmarshal(body, responseUnmarshal)
+	if err != nil {
+		return nil, err
+	}
+	if responseUnmarshal.Status != http.StatusOK {
+		return nil, fmt.Errorf(responseUnmarshal.Error)
+	}
+	accessToken, exists := responseUnmarshal.Body["accessToken"].(string)
+	if !exists {
+		return nil, fmt.Errorf("Невозможно получить accessToken.")
+	}
+	url = fmt.Sprintf("https://dashboard.light-defender.ru/api/v1/configurations/%s/download", configId)
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("Не вышло сделать запрос: %w", err)
+	}
+	req.Header.Set("Authorization", accessToken)
+	resp, err = client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("Не вышло сделать запрос: %w", err)
+	}
+	defer resp.Body.Close()
+	//!!
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("Не вышло прочитать ответ: %w", err)
+	}
 	return body, nil
 }
 
