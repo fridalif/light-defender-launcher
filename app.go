@@ -178,7 +178,7 @@ func LoadFileFromDashboard(dashboardLogin string, dashboardPassword string, conf
 		return nil, fmt.Errorf("Учётные данные не верны.")
 	}
 	var responseUnmarshal AuthResponse
-	err = json.Unmarshal(body, responseUnmarshal)
+	err = json.Unmarshal(body, &responseUnmarshal)
 	if err != nil {
 		return nil, err
 	}
@@ -201,12 +201,24 @@ func LoadFileFromDashboard(dashboardLogin string, dashboardPassword string, conf
 		return nil, fmt.Errorf("Не вышло сделать запрос: %w", err)
 	}
 	defer resp.Body.Close()
-	//!!
+
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("Не вышло прочитать ответ: %w", err)
 	}
-	return body, nil
+
+	err = json.Unmarshal(bodyBytes, &responseUnmarshal)
+	if err != nil {
+		return nil, fmt.Errorf("Не вышло декодировать ответ: %w", err)
+	}
+	if responseUnmarshal.Status != http.StatusOK {
+		return nil, fmt.Errorf(responseUnmarshal.Error)
+	}
+	configBytes, exists := responseUnmarshal.Body["configuration"].([]byte)
+	if !exists {
+		return nil, fmt.Errorf("Невозможно получить конфигурацию.")
+	}
+	return configBytes, nil
 }
 
 func (a *App) LoadConfig(sshUsername string, sshPassword string, host string, port string, dashboardLogin string, dashboardPassword string, configId string, fileb64 string) []string {
