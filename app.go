@@ -214,9 +214,15 @@ func LoadFileFromDashboard(dashboardLogin string, dashboardPassword string, conf
 	if responseUnmarshal.Status != http.StatusOK {
 		return nil, fmt.Errorf(responseUnmarshal.Error)
 	}
-	configBytes, exists := responseUnmarshal.Body["configuration"].([]byte)
+	config, exists := responseUnmarshal.Body["configuration"].(string)
 	if !exists {
+		fmt.Println(string(bodyBytes))
 		return nil, fmt.Errorf("Невозможно получить конфигурацию.")
+	}
+
+	configBytes, err := base64.StdEncoding.DecodeString(config)
+	if err != nil {
+		return nil, fmt.Errorf("Невозможно декодировать конфигурацию: %w", err)
 	}
 	return configBytes, nil
 }
